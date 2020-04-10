@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+pipenv run python -m vhs_stitcher.$1 "${@:2}"

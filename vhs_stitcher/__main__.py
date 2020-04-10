@@ -33,13 +33,19 @@ def train_model(data, model, optimizer, n_iter, batch_size):
         print(f"  {i}: {float(score):.3f}")
 
 
-def main(*, train: bool = False, examine_data: bool = False):
+def main(
+    *,
+    train: bool = False,
+    save: bool = False,
+        examine_data: bool = False):
+    fix_random_seed(0)
     is_gpu = prefer_gpu()
     print("using gpu" if is_gpu else "not using gpu")
 
     this_directory = Path(__file__).parent
+    parent_directory = this_directory.parent
 
-    with open(this_directory / "thinc.ini") as config_ini:
+    with open(parent_directory / "thinc.ini") as config_ini:
         config_str = config_ini.read()
 
     config = Config().from_str(config_str)
@@ -52,17 +58,25 @@ def main(*, train: bool = False, examine_data: bool = False):
 
     (train_X, train_Y), (dev_X, dev_Y) = mnist()
 
-    fix_random_seed(0)
     model.initialize(X=train_X[:5], Y=train_Y[:5])
 
     if train:
         print("Training:")
         train_model(((train_X, train_Y), (dev_X, dev_Y)),
                     model, optimizer, n_iter, batch_size)
+
+        if save:
+            model_directory = parent_directory / "models"
+            from json import dump
+            from pprint import pprint
+            pprint(model.to_dict())
+            model.to_disk(model_directory / "mnist.model")
+            print("saved")
+
     elif examine_data:
         print("Take a look at this data:")
 
-        image_directory = this_directory / "images"
+        image_directory = parent_directory / "data"
         image_directory.mkdir(exist_ok=True)
 
         for i, (X, _) in tqdm(enumerate(zip(train_X, train_Y))):
@@ -71,9 +85,9 @@ def main(*, train: bool = False, examine_data: bool = False):
 
             size = int(len(X)**0.5)
             unflattened = array(
-                [array([X[i * size + j]*255 for j in range(size)]) for i in range(size)])
+                [array([X[i * size + j] * 255 for j in range(size)]) for i in range(size)])
 
-            imwrite(image_directory / f"{i}.png", unflattened)
+            imwrite(image_directory / f"{i}.jpg", unflattened)
 
 
 if __name__ == "__main__":

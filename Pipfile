@@ -10,11 +10,15 @@ autopep8 = "==1.5"
 [packages]
 thinc = {extras = ["blis"],version = "==8.0.0a1"}
 ml-datasets = "==0.1.6"
-ipywidgets = "==7.5.1"
 tqdm = "==4.43.0"
 pillow = "==7.0.0"
 fire = "==0.3.0"
 imageio = "==2.8.0"
+imageio-ffmpeg = "==0.4.1"
 
 [requires]
 python_version = "3.8"
+
+[scripts]
+"lint" = "autopep8 --in-place --aggressive --aggressive --aggressive"
+"lint:all" = "pipenv run lint --recursive ."
