@@ -9,7 +9,7 @@ from warnings import warn
 from imageio import get_reader, imwrite
 from tqdm import tqdm
 
-from . import extracted_frames
+from . import extracted_frames_directory
 
 
 def main(
@@ -19,17 +19,17 @@ def main(
         delete_last: bool = False) -> None:
     "Extract the endings of and beginnings of the first chunk and second chunk respectively to the extracted_frames directory"
 
-    extracted_frames.mkdir(parents=True, exist_ok=True)
+    extracted_frames_directory.mkdir(parents=True, exist_ok=True)
 
-    if any(extracted_frames.iterdir()):
+    if any(extracted_frames_directory.iterdir()):
         if delete_last:
             print(
-                f"deleting previous frames from the {extracted_frames} directory")
-            rmtree(extracted_frames)
-            extracted_frames.mkdir(parents=True, exist_ok=True)
+                f"deleting previous frames from the {extracted_frames_directory} directory")
+            rmtree(extracted_frames_directory)
+            extracted_frames_directory.mkdir(parents=True, exist_ok=True)
         else:
             warn(
-                f"there were still files in the {extracted_frames} directory, so they are likely to be overwritten or be hard to distinguish from freshly extracted frames. run again with --delete-last to delete them before extracting new frames")
+                f"there were still files in the {extracted_frames_directory} directory, so they are likely to be overwritten or be hard to distinguish from freshly extracted frames. run again with --delete-last to delete them before extracting new frames")
 
     for chunk, ending in [[chunk_1, True], [chunk_2, False]]:
         chunk_path = Path(cast(str, chunk))
@@ -52,7 +52,7 @@ def main(
         total_seconds_extracted = end - start
         total_frames_extracted = total_seconds_extracted * fps
 
-        output_directory = extracted_frames / \
+        output_directory = extracted_frames_directory / \
             ("ending" if ending else "continuing")
         output_directory.mkdir(parents=True, exist_ok=True)
 
@@ -74,7 +74,7 @@ def main(
         for index, image in progress_bar:
             imwrite(output_directory / f"{index}.jpg", image)
 
-    print(f"all frames have been extracted to {extracted_frames}")
+    print(f"all frames have been extracted to {extracted_frames_directory}")
     print(f"your advised next step is to open up the file viewer to identify ranges of matches from `continuing` and `ending`")
     print(f"then use `stitch match` to organize these into matches")
 

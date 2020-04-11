@@ -1,8 +1,10 @@
+from itertools import tee
 from pathlib import Path
-from typing import cast, Dict, List, Set, Tuple
+from random import shuffle
+from typing import cast, Dict, Generator, Iterable, Iterator, List, Set, Tuple, TypeVar
 
 from imageio import imread, imwrite
-from numpy import ndarray
+from numpy import array, ndarray, ones, zeros
 from numpy.random import choice
 from PIL import Image
 from PIL.Image import Image as ImageType
@@ -10,8 +12,8 @@ from PIL.ImageChops import difference
 from tqdm import tqdm
 from uuid import uuid4
 
-from . import matches, IMAGE_SIZE_LARGE, IMAGE_SIZE_SMALL, TEST_SET_EQUAL, TEST_SET_UNEQUAL, TRAINING_SET_EQUAL, TRAINING_SET_UNEQUAL, training_equal, training_unequal, test_equal, test_unequal
-from .prepare import prepare_image, side_by_side
+from . import matches_directory, IMAGE_SIZE_LARGE, IMAGE_SIZE_SMALL, TEST_SET_EQUAL, TEST_SET_UNEQUAL, TRAINING_SET_EQUAL, TRAINING_SET_UNEQUAL, training_equal, training_unequal, test_equal, test_unequal
+from .image_editing import grayscale, prepare_image, side_by_side
 
 Record = Tuple[Path, Path]
 
@@ -96,7 +98,9 @@ def create_image_comparison(
     blurred_difference = difference(
         image_1_results["blurred_small"], image_2_results["blurred_small"])
 
-    return side_by_side(edge_difference, blurred_difference)
+    return side_by_side(
+        grayscale(edge_difference),
+        grayscale(blurred_difference))
 
 
 def create_and_save_records(sets, training_sets: bool, test_sets: bool):
@@ -181,8 +185,60 @@ def create_and_save_records(sets, training_sets: bool, test_sets: bool):
             imwrite(test_unequal / f"{record_id}.png", image_comparison)
 
 
+def images_in(directory: Path) -> Generator[Path, None, None]:
+    for path in directory.iterdir():
+        if path.suffix not in [".jpg", ".png"]:
+            continue
+        # Ignore macOS dotfiles
+        if path.stem.startswith("._"):
+            continue
+
+        yield path
+
+
+def load_set(training: bool) -> Generator[Tuple[ndarray, ndarray], None, None]:
+    "Load either the training (True) or test (False) set"
+
+    paths: List[Path] = []
+
+    if training:
+        paths.extend(images_in(training_equal))
+        paths.extend(images_in(training_unequal))
+    else:
+        paths.extend(images_in(test_equal))
+        paths.extend(images_in(test_unequal))
+
+    # Randomize the entries so that the network gets a balanced curriculum
+    shuffle(paths)
+
+    for path in paths:
+        image = imread(path)
+        image_array = array(image)
+        answer = zeros(1) if "unequal" in str(path.parent) else ones(1)
+        yield (image_array.astype(dtype="float32"), answer.astype(dtype="float32"))
+
+
+Type1 = TypeVar("Type1")
+Type2 = TypeVar("Type2")
+
+
+def unzip(iterable: Iterable[Tuple[Type1, Type2]]
+          ) -> Tuple[Iterator[Type1], Iterator[Type2]]:
+    copy_1, copy_2 = tee(iterable)
+
+    def iter_1():
+        for val_1, _ in copy_1:
+            yield val_1
+
+    def iter_2():
+        for _, val_2 in copy_2:
+            yield val_2
+
+    return iter_1(), iter_2()
+
+
 def main(no_training_sets: bool = False, no_test_sets: bool = False):
-    match_names = sorted(matches.iterdir())
+    match_names = sorted(matches_directory.iterdir())
     sets = assemble_sets(match_names, not no_training_sets, not no_test_sets)
     # Create a line separating the progress bars for assembling sets and
     # creating records

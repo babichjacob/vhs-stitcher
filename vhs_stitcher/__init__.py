@@ -1,11 +1,16 @@
+from math import floor
 from pathlib import Path
 
-root_directory = Path()
+
+src_directory = Path(__file__).parent
+application_directory = src_directory.parent
+
+current_dictory = Path.cwd()
 # Data directory, where images, models, and eventually results are stored
-data_directory = root_directory / "data"
-extracted_frames = data_directory / "extracted_frames"
-matches = data_directory / "matches"
-models = data_directory / "models"
+data_directory = current_dictory / "data"
+extracted_frames_directory = data_directory / "extracted_frames"
+matches_directory = data_directory / "matches"
+models_directory = data_directory / "models"
 
 test_directory = data_directory / "test"
 test_equal = test_directory / "equal"
@@ -23,3 +28,9 @@ TRAINING_SET_UNEQUAL = 8000
 
 TEST_SET_EQUAL = 500
 TEST_SET_UNEQUAL = 4000
+
+SESSIONS = 50
+TRAINING_RECORDS_PER_SESSION = floor(
+    (TRAINING_SET_EQUAL + TRAINING_SET_UNEQUAL) / SESSIONS)
+TEST_RECORDS_PER_SESSION = floor(
+    (TEST_SET_EQUAL + TEST_SET_UNEQUAL) / SESSIONS)
