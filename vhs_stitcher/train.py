@@ -1,25 +1,24 @@
 from itertools import islice
+from typing import Tuple
 
 from numpy import array, absolute, equal
-from thinc.api import Adam, chain, fix_random_seed, Logistic, Model, prefer_gpu, PyTorchWrapper, Relu, Softmax
-from thinc.types import Floats1d, Floats2d
+from thinc.api import Adam, chain, expand_window, fix_random_seed, HashEmbed, Logistic, Model, Optimizer, prefer_gpu, PyTorchWrapper, Relu, Softmax, with_array, with_reshape
+from thinc.types import Floats1d, Floats2d, Floats3d
 from torch.nn import Conv2d, MaxPool2d
 from tqdm import tqdm
 
 from . import application_directory, IMAGE_SIZE_SMALL, models_directory, SESSIONS, TEST_RECORDS_PER_SESSION, TRAINING_RECORDS_PER_SESSION
 from .assemble import load_set, unzip
 
-ImagesEqualModel = Model[Floats2d, Floats1d]
+ImagesEqualModel = Model[Floats2d, Floats2d]
 
-
-def create_neural_network():
+def create_neural_network() -> Tuple[ImagesEqualModel, Optimizer]:
     with Model.define_operators({">>": chain}):
-        model = (
-            PyTorchWrapper(Conv2d(in_channels=1, out_channels=64, kernel_size=5)) >>
-            PyTorchWrapper(MaxPool2d(kernel_size=2)) >>
-            Relu(nO=64, dropout=0.8) >>
-            Relu(nO=16, dropout=0.8) >>
-            Softmax()
+        model: ImagesEqualModel = with_array(
+            expand_window(window_size=1)
+            >> Relu(nO=IMAGE_SIZE_SMALL, nI=IMAGE_SIZE_SMALL * IMAGE_SIZE_SMALL * 2 * 3)
+            >> Relu(nO=IMAGE_SIZE_SMALL, nI=IMAGE_SIZE_SMALL)
+            >> Softmax(nO=1, nI=IMAGE_SIZE_SMALL)
         )
 
     optimizer = Adam(0.005)
@@ -57,9 +56,8 @@ def main(fresh: bool = False, move_studied_records: bool = True):
     else:
         print(f"continuining to train the pre-existing model")
 
-    sessions = tqdm(range(SESSIONS),
-                    desc="running training sessions", unit="sessions")
-    with tqdm(total=100, desc="accuracy", unit="%") as accuracy:
+    with tqdm(total=100, desc="accuracy", unit="%") as accuracy, tqdm(range(SESSIONS),
+                                                                      desc="running training sessions", unit="sessions") as sessions:
         correct = 0
         total = 0
 
@@ -93,7 +91,7 @@ def main(fresh: bool = False, move_studied_records: bool = True):
             Y = array(
                 list(islice(test_answers, 0, TEST_RECORDS_PER_SESSION)))
             Yh = model.predict(X)
-            
+
             close_enough = absolute(Yh - Y) < 0.5
             correct += close_enough.sum()
             total += Yh.shape[0]

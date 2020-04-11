@@ -213,7 +213,7 @@ def load_set(training: bool) -> Generator[Tuple[ndarray, ndarray], None, None]:
 
     for path in paths:
         image = imread(path)
-        image_array = array(image)
+        image_array = array(image).ravel()
         answer = zeros(1) if "unequal" in str(path.parent) else ones(1)
         yield (image_array.astype(dtype="float32"), answer.astype(dtype="float32"))
 
