@@ -4,7 +4,8 @@ from typing import Tuple
 from numpy import array, absolute, equal
 from thinc.api import Adam, chain, expand_window, fix_random_seed, HashEmbed, Logistic, Model, Optimizer, prefer_gpu, PyTorchWrapper, Relu, Softmax, with_array, with_reshape
 from thinc.types import Floats1d, Floats2d, Floats3d
-from torch.nn import Conv2d, MaxPool2d
+from torch.nn import Conv2d, Dropout, Linear, MaxPool2d, Module, ReLU, Sequential
+from torch.nn.functional import log_softmax, max_pool2d
 from tqdm import tqdm
 
 from . import application_directory, IMAGE_SIZE_SMALL, models_directory, SESSIONS, TEST_RECORDS_PER_SESSION, TRAINING_RECORDS_PER_SESSION
@@ -12,15 +13,41 @@ from .assemble import load_set, unzip
 
 ImagesEqualModel = Model[Floats2d, Floats2d]
 
-def create_neural_network() -> Tuple[ImagesEqualModel, Optimizer]:
-    with Model.define_operators({">>": chain}):
-        model: ImagesEqualModel = with_array(
-            expand_window(window_size=1)
-            >> Relu(nO=IMAGE_SIZE_SMALL, nI=IMAGE_SIZE_SMALL * IMAGE_SIZE_SMALL * 2 * 3)
-            >> Relu(nO=IMAGE_SIZE_SMALL, nI=IMAGE_SIZE_SMALL)
-            >> Softmax(nO=1, nI=IMAGE_SIZE_SMALL)
-        )
 
+def create_neural_network() -> Tuple[ImagesEqualModel, Optimizer]:
+    class ConvolutionalNeuralNetwork(Module):
+        def __init__(self):
+            super().__init__()
+            self.convolutional_1 = Sequential(
+                Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=1, padding=2),
+                ReLU(),
+                MaxPool2d(kernel_size=2),
+            )
+
+            self.convolutional_2 = Sequential(
+                Conv2d(in_channels=32, out_channels=64, kernel_size=5, stride=1, padding=2),
+                ReLU(),
+                MaxPool2d(kernel_size=2),
+            )
+
+            self.drop_out_1 = Dropout()
+
+            self.fully_connected_1 = Linear(in_features=32768, out_features=200)
+            self.fully_connected_2 = Linear(in_features=200, out_features=1)
+
+        def forward(self, x):
+            x = self.convolutional_1(x)
+            x = self.convolutional_2(x)
+
+            x = x.reshape(x.size(0), -1)
+
+            x = self.drop_out_1(x)
+
+            x = self.fully_connected_1(x)
+            x = self.fully_connected_2(x)
+            return x
+
+    model = PyTorchWrapper(ConvolutionalNeuralNetwork())
     optimizer = Adam(0.005)
 
     return model, optimizer
@@ -100,6 +127,8 @@ def main(fresh: bool = False, move_studied_records: bool = True):
             accuracy.n = int(score * 100)
             accuracy.refresh()
 
+    print("training over")
+    print(f"final accuracy: {score*100}")
     models_directory.mkdir(parents=True, exist_ok=True)
     model.to_disk(models_directory / "image_equal.model")
 

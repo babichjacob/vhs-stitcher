@@ -4,7 +4,7 @@ from random import shuffle
 from typing import cast, Dict, Generator, Iterable, Iterator, List, Set, Tuple, TypeVar
 
 from imageio import imread, imwrite
-from numpy import array, ndarray, ones, zeros
+from numpy import array, ndarray, newaxis, ones, zeros
 from numpy.random import choice
 from PIL import Image
 from PIL.Image import Image as ImageType
@@ -213,9 +213,9 @@ def load_set(training: bool) -> Generator[Tuple[ndarray, ndarray], None, None]:
 
     for path in paths:
         image = imread(path)
-        image_array = array(image).ravel()
+        image_array = array(image)
         answer = zeros(1) if "unequal" in str(path.parent) else ones(1)
-        yield (image_array.astype(dtype="float32"), answer.astype(dtype="float32"))
+        yield (image_array.astype(dtype="float32")[newaxis, ...], answer.astype(dtype="float32"))
 
 
 Type1 = TypeVar("Type1")
