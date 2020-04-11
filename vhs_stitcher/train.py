@@ -19,21 +19,21 @@ def create_neural_network() -> Tuple[ImagesEqualModel, Optimizer]:
         def __init__(self):
             super().__init__()
             self.convolutional_1 = Sequential(
-                Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=1, padding=2),
+                Conv2d(in_channels=1, out_channels=48, kernel_size=5, stride=1, padding=2),
                 ReLU(),
                 MaxPool2d(kernel_size=2),
             )
 
             self.convolutional_2 = Sequential(
-                Conv2d(in_channels=32, out_channels=64, kernel_size=5, stride=1, padding=2),
+                Conv2d(in_channels=48, out_channels=16, kernel_size=5, stride=1, padding=2),
                 ReLU(),
                 MaxPool2d(kernel_size=2),
             )
 
             self.drop_out_1 = Dropout()
 
-            self.fully_connected_1 = Linear(in_features=32768, out_features=200)
-            self.fully_connected_2 = Linear(in_features=200, out_features=1)
+            self.fully_connected_1 = Linear(in_features=8192, out_features=96)
+            self.fully_connected_2 = Linear(in_features=96, out_features=1)
 
         def forward(self, x):
             x = self.convolutional_1(x)
