@@ -11,10 +11,9 @@ from tqdm import tqdm
 from . import application_directory, IMAGE_SIZE_SMALL, models_directory, SESSIONS, TEST_RECORDS_PER_SESSION, TRAINING_RECORDS_PER_SESSION
 from .assemble import load_set, unzip
 
-ImagesEqualModel = Model[Floats2d, Floats2d]
 
-
-def create_neural_network() -> Tuple[ImagesEqualModel, Optimizer]:
+def create_neural_network() -> Tuple[Model, Optimizer]:
+    # https://adventuresinmachinelearning.com/convolutional-neural-networks-tutorial-in-pytorch/
     class ConvolutionalNeuralNetwork(Module):
         def __init__(self):
             super().__init__()
@@ -53,6 +52,18 @@ def create_neural_network() -> Tuple[ImagesEqualModel, Optimizer]:
     return model, optimizer
 
 
+def get_trained_network() -> Model:
+    model, _ = create_neural_network()
+
+    try:
+        model.from_disk(models_directory / "image_equal.model")
+    except FileNotFoundError:
+        raise RuntimeError(f"the neural network has not been trained yet -- you need to run `stitch train` to fix this")
+
+    return model
+
+
+
 def main(fresh: bool = False, move_studied_records: bool = True):
     # Reproducidibility
     fix_random_seed(100)
@@ -83,6 +94,7 @@ def main(fresh: bool = False, move_studied_records: bool = True):
     else:
         print(f"continuining to train the pre-existing model")
 
+    # https://github.com/explosion/thinc/blob/master/examples/00_intro_to_thinc.ipynb
     with tqdm(total=100, desc="accuracy", unit="%") as accuracy, tqdm(range(SESSIONS),
                                                                       desc="running training sessions", unit="sessions") as sessions:
         correct = 0
@@ -127,10 +139,10 @@ def main(fresh: bool = False, move_studied_records: bool = True):
             accuracy.n = int(score * 100)
             accuracy.refresh()
 
-    print("training over")
-    print(f"final accuracy: {score*100}")
     models_directory.mkdir(parents=True, exist_ok=True)
     model.to_disk(models_directory / "image_equal.model")
+    print(f"training is complete and saved to {models_directory}")
+    print(f"your advised next step is to find two videos you want to combine and run `stitch combine` on them")
 
 
 if __name__ == "__main__":
