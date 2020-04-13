@@ -56,7 +56,7 @@ def get_trained_network() -> Model:
     model, _ = create_neural_network()
 
     try:
-        model.from_disk(models_directory / "image_equal.model")
+        model.from_disk(models_directory / "images_are_equal.model")
     except FileNotFoundError:
         raise RuntimeError(f"the neural network has not been trained yet -- you need to run `stitch train` to fix this")
 
@@ -81,7 +81,7 @@ def main(fresh: bool = False, move_studied_records: bool = True):
 
     if not fresh:
         try:
-            model.from_disk(models_directory / "image_equal.model")
+            model.from_disk(models_directory / "images_are_equal.model")
         except FileNotFoundError:
             fresh = True
 
@@ -140,7 +140,7 @@ def main(fresh: bool = False, move_studied_records: bool = True):
             accuracy.refresh()
 
     models_directory.mkdir(parents=True, exist_ok=True)
-    model.to_disk(models_directory / "image_equal.model")
+    model.to_disk(models_directory / "images_are_equal.model")
     print(f"training is complete and saved to {models_directory}")
     print(f"your advised next step is to find two videos you want to combine and run `stitch combine` on them")
 
