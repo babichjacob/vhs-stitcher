@@ -1,8 +1,8 @@
+@echo off
 rem https://stackoverflow.com/a/761658
 
 set arg1=%1
 
-@echo off
 rem throw the first parameter away
 shift
 set params=%1
