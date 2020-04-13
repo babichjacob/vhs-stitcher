@@ -44,7 +44,3 @@ def side_by_side(image_1: ImageType, image_2: ImageType) -> ImageType:
 
     horizontal = hstack((array(image_1), array(image_2)))
     return Image.fromarray(horizontal)
-
-
-def flatten(image: ImageType) -> array:
-    multidimensional = array(image)
