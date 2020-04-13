@@ -12,7 +12,7 @@ from tqdm import tqdm
 from . import extracted_frames_directory
 
 
-def main(
+def extract(
         chunk_1: str,
         chunk_2: str,
         seconds: float = 90.0,
@@ -73,6 +73,18 @@ def main(
             unit="frames")
         for index, image in progress_bar:
             imwrite(output_directory / f"{index}.jpg", image)
+
+
+def main(
+        chunk_1: str,
+        chunk_2: str,
+        seconds: float = 90.0,
+        delete_last: bool = False):
+    extract(
+        chunk_1=chunk_1,
+        chunk_2=chunk_2,
+        seconds=seconds,
+        delete_last=delete_last)
 
     print(f"all frames have been extracted to {extracted_frames_directory}")
     print(f"your advised next step is to open up the file viewer to identify ranges of matches from `continuing` and `ending`")
