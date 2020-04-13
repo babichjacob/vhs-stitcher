@@ -20,14 +20,14 @@ training_directory = data_directory / "training"
 training_equal = training_directory / "equal"
 training_unequal = training_directory / "unequal"
 
-IMAGE_SIZE_LARGE = 256
-IMAGE_SIZE_SMALL = 64
+IMAGE_SIZE_LARGE = 128
+IMAGE_SIZE_SMALL = 32
 
-TRAINING_SET_EQUAL = 2000
-TRAINING_SET_UNEQUAL = 8000
+TRAINING_SET_EQUAL = 2500
+TRAINING_SET_UNEQUAL = 4000
 
 TEST_SET_EQUAL = 500
-TEST_SET_UNEQUAL = 4000
+TEST_SET_UNEQUAL = 500
 
 SESSIONS = 50
 TRAINING_RECORDS_PER_SESSION = floor(
