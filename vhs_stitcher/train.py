@@ -1,9 +1,10 @@
 from itertools import islice
-from typing import Tuple
+from typing import Iterator, Tuple
 
 from numpy import array, absolute, equal
-from thinc.api import Adam, chain, decaying, fix_random_seed, L2Distance, Model, Optimizer, prefer_gpu, PyTorchWrapper
-from thinc.types import Floats1d, Floats2d, Floats3d
+from thinc.api import Adam, chain, decaying, fix_random_seed, Model, Optimizer, prefer_gpu, PyTorchWrapper
+from thinc.loss import Loss
+from thinc.types import Floats2d
 from torch.nn import Conv2d, Dropout, Linear, MaxPool2d, Module, ReLU, Sequential, Sigmoid, Softmax
 from torch.nn.functional import log_softmax, max_pool2d
 from tqdm import tqdm
@@ -88,7 +89,32 @@ class ConvolutionalNeuralNetwork(Module):
         return self.softmax(X)
 
 
-def create_neural_network() -> Tuple[Model, Optimizer]:
+# Adapted from the builtin L2Distance loss
+class OverconfidenceLoss(Loss):
+    def __init__(self, *, normalize: bool = True):
+        self.normalize = normalize
+
+    def __call__(self, guesses: Floats2d, truths: Floats2d) -> Tuple[Floats2d, float]:
+        return self.get_grad(guesses, truths), self.get_loss(guesses, truths)
+
+    def get_grad(self, guesses: Floats2d, truths: Floats2d) -> Floats2d:
+        if guesses.shape != truths.shape:
+            err = f"Cannot calculate overconfidence loss: mismatched shapes: {guesses.shape} vs {truths.shape}."
+            raise ValueError(err)
+        difference = guesses - truths
+        if self.normalize:
+            difference = difference / guesses.shape[0]
+        return difference
+
+    def get_loss(self, guesses: Floats2d, truths: Floats2d) -> float:
+        if guesses.shape != truths.shape:
+            err = f"Cannot calculate overconfidence loss: mismatched shapes: {guesses.shape} vs {truths.shape}."
+            raise ValueError(err)
+        d_truth = self.get_grad(guesses, truths)
+        return (d_truth ** 4).sum()  # type: ignore
+
+
+def create_neural_network() -> Tuple[Model, Iterator[Optimizer], Loss]:
     # These parameters managed to result in high accuracy
     layer_1_convolutions = 32
     layer_2_convolutions = 64
@@ -127,7 +153,7 @@ def create_neural_network() -> Tuple[Model, Optimizer]:
 
     model = PyTorchWrapper(network)
     optimizers = map(Adam, learning_rates)
-    loss = L2Distance()
+    loss = OverconfidenceLoss()
 
     return model, optimizers, loss
 
