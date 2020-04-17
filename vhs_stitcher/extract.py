@@ -31,8 +31,10 @@ def extract(
             warn(
                 f"there were still files in the {extracted_frames_directory} directory, so they are likely to be overwritten or be hard to distinguish from freshly extracted frames. run again with --delete-last to delete them before extracting new frames")
 
+    return_data = {}
+
     for chunk, ending in [[chunk_1, True], [chunk_2, False]]:
-        chunk_path = Path(cast(str, chunk))
+        chunk_path = Path(chunk)
 
         # Just make a reader only for metadata necessary for trimming
         metadata_reader = get_reader(chunk_path, format="FFMPEG")
@@ -43,14 +45,23 @@ def extract(
         if ending:
             frames: int = metadata_reader.count_frames()
             video_length_seconds: float = frames / fps
+
             start = video_length_seconds - seconds
             end = video_length_seconds
+
+            return_data["ending_video_fps"] = fps
+            return_data["ending_video_start"] = start
+            return_data["ending_video_end"] = end
         else:
             start = 0.0
             end = seconds
 
+            return_data["continuing_video_fps"] = fps
+            return_data["continuing_video_start"] = start
+            return_data["continuing_video_end"] = end
+
         total_seconds_extracted = end - start
-        total_frames_extracted = total_seconds_extracted * fps
+        expected_total_frames_extracted = total_seconds_extracted * fps
 
         output_directory = extracted_frames_directory / \
             ("ending" if ending else "continuing")
@@ -68,11 +79,19 @@ def extract(
 
         progress_bar = tqdm(
             enumerate(reader),
-            total=ceil(total_frames_extracted),
+            total=ceil(expected_total_frames_extracted),
             desc=f"extracting {chunk}",
             unit="frames")
         for index, image in progress_bar:
             imwrite(output_directory / f"{index}.jpg", image)
+
+        # Keep track of the true number of frames extracted
+        if ending:
+            return_data["ending_frames"] = index + 1
+        else:
+            return_data["continuing_frames"] = index + 1
+
+    return return_data
 
 
 def main(

@@ -10,12 +10,12 @@ def main(ending_range_str: str, continuing_range_str: str):
     continuing_start_str, _, continuing_end_str = continuing_range_str.partition(
         ":")
 
-    ending_start, ending_end = int(ending_start_str), int(ending_end_str) + 1
+    ending_start, ending_end = int(ending_start_str), int(ending_end_str)
     continuing_start, continuing_end = int(
-        continuing_start_str), int(continuing_end_str) + 1
+        continuing_start_str), int(continuing_end_str)
 
-    ending_range = range(ending_start, ending_end)
-    continuing_range = range(continuing_start, continuing_end)
+    ending_range = range(ending_start, ending_end + 1)
+    continuing_range = range(continuing_start, continuing_end + 1)
     # Demand that the ranges are the same length
     if len(ending_range) != len(continuing_range):
         raise ValueError(
