@@ -19,7 +19,7 @@ I brainstormed this plan to solve this problem before researching and beginning 
 2. Scan the beginning and end of the two given video files, and pass the frames into the network to find where the overlap is
 3. Use this information to generate a timestamp for where to stop the first video and where to continue from the second perfectly
 
-I didn't deviate much from this plan to the final product, but I knew if I had trouble with the neural network that I would fall back to traditional image processing techniques. Fortunately, the network performed exceptionally because it was a reasonably simple task.
+I didn't deviate much from this plan to the final product, but I knew if I had trouble with the neural network that I would fall back to traditional image processing techniques. Fortunately, the network performed exceptionally because its task is reasonably simple.
 
 
 <a name="implementation"></a>
@@ -122,12 +122,20 @@ The remaining unequal images are pretty clearly different.
 
 ### Training the neural network: `stitch train`
 #### Convolutional neural network (CNN) architecture
-![Cherrypicked records](./report_images/cnn_architecture.jpg)
+![CNN architecture](./report_images/cnn_architecture.jpg)
 <figcaption style="text-align: center">Annotated layers of the convolutional neural network. 
 
 This diagram has been modified from <a href="https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53">this blog post.</a></figcaption>
 
-TODO
+This model is identical to what we've discussed in class and used in [ConvNetJS](https://cs.stanford.edu/people/karpathy/convnetjs/demo/mnist.html) besides the introduction of a fully connected layer at the end, and this report is already quite long (I am writing this section last), so I will not explain it in much detail.
+
+In a general application, the first convolutional layer should have filters emerge that help detect features at the low level, like blobs and edges, and the convolutional layer after this should use combinations of those filters to identify slightly higher level features, like corners or slightly more complex shapes. In my specific application of detecting equality or inequality, I think they will have to just come up with some filters that are all black (0.0) or all white (1.0), since perfectly equal images have solid black comparisons, though this is just a guess.
+
+The convolutional layers feed into max pooling layers to reduce dimensionality without losing much information. They then go through ReLU activation, chosen since it doesn't have the vanishing gradient problem that sigmoid does. The data then goes through a dropout layer, which deactivates 60% of the neurons so that all may be trained equally. I chose to use dropout over L2 or L1 regularization because it was easier to code.
+
+The data is then flattened, i.e. goes from 2D to 1D, and passes through a traditional fully connected 3-layer network (input, hidden, then output) with linear activation functions. The last layer produces 2 outputs, which are passed into the softmax function to produce a vector of values that add up to 1.0 (i.e. behave like probability).
+
+I chose to implement this model with the [`thinc`](https://thinc.ai/) library over [PyTorch](https://pytorch.org/) and [TensorFlow](https://www.tensorflow.org/), my second and third choices, which are both much more popular and featureful libraries, because it is much more modern, has a small API so it should be simpler to learn, and has the ability to wrap these other two libraries in case their functionality is needed.
 
 
 #### Adversity
@@ -135,7 +143,7 @@ Coming up with that model (neural network design) was easy, since it was pretty 
 
 The first setup that I managed to get to work, practically unmodified from the [`thinc` library's intro tutorial](https://colab.research.google.com/github/explosion/thinc/blob/master/examples/00_intro_to_thinc.ipynb#scrollTo=liOTpmsYyxma&line=8&uniqifier=1) started at 9% accuracy because it looks at inputs as flat arrays instead of as 2D matrices. So, I tossed that setup and scoured `thinc`'s websites for examples of CNNs, but [the only one it has is for natural language processing (NLP)](https://github.com/explosion/thinc/blob/master/examples/03_pos_tagger_basic_cnn.ipynb), which is either totally unrelated to image processing CNNs or the two are deeply linked in a way that is beyond my understanding. 
 
-Because I was not able to make a CNN with `thinc`'s provided layer types, I began to look in to [PyTorch](https://pytorch.org/), a more mature and mainstream library that has many more tutorials available and built-in support for 2D image processing, including pooling and convolutional filter layers. The greatest thing is that the only thing about my code I had to change was my model, because the `thinc` library includes a [PyTorchWrapper](https://thinc.ai/docs/usage-frameworks) that makes PyTorch models fully compatible with `thinc` training, testing, prediction, and storage (i.e. to and from disk).
+Because I was not able to make a CNN with `thinc`'s provided layer types, I began to look in to [PyTorch](https://pytorch.org/), a more mature and mainstream library that has many more tutorials available and built-in support for 2D image processing, including pooling and convolutional filter layers. The greatest thing is that the only thing about my code I had to change was my model, because the `thinc` library includes a [PyTorchWrapper](https://thinc.ai/docs/usage-frameworks) that makes PyTorch models fully compatible with `thinc` training, testing, prediction, and storage (to and from disk).
 
 Unfortunately, once I switched from a `thinc` model to a PyTorch model, the program began to [segmentation fault](https://en.wikipedia.org/wiki/Segmentation_fault) on my main computer, with an AMD processor on macOS. So, I had to continue with the project using my slower Windows laptop with an Intel processor. 
 
@@ -168,6 +176,8 @@ These timestamps are used to generate an FFMPEG command that combines the two vi
 
 ## Conclusion
 I tested the `combine` command on a fresh VHS tape (i.e. the neural network had never seen it before) and it correctly found a *perfect* matching frame pair to combine/stitch at. I reviewed the result and saw that it chose to frame where the camera was moving quickly, so if it had been off by even a little bit, a stutter (skipping ahead of repeating already seen frames) would've been noticeable. In actuality, the stitcher *nailed it*.
+
+If I were to continue to work on this project, I would focus on optimizing it. For instance, it takes a really long time (minutes) to find a match in `combine`, and reducing the number of frames to scan should solve this, such as by stopping once a sufficiently accurate 99.999% match is found or by cutting the extraction period down from 90 seconds to, say, 30 seconds.
 
 I've been a programmer for a long time but I've historically actively avoided working with artificial intelligence (AI) / neural networks / machine learning (ML), image processing, or data and numerical analysis stuff. **This project, and class as a whole, has empowered me to continue down this continue down this path with experience.** One area I may apply this knowledge next is "smartening up" my security system with neural networks, an idea I came up with originally doing for this project but rejected. 
 
