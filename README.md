@@ -135,33 +135,41 @@ Coming up with that model (neural network design) was easy, since it was pretty 
 
 The first setup that I managed to get to work, practically unmodified from the [`thinc` library's intro tutorial](https://colab.research.google.com/github/explosion/thinc/blob/master/examples/00_intro_to_thinc.ipynb#scrollTo=liOTpmsYyxma&line=8&uniqifier=1) started at 9% accuracy because it looks at inputs as flat arrays instead of as 2D matrices. So, I tossed that setup and scoured `thinc`'s websites for examples of CNNs, but [the only one it has is for natural language processing (NLP)](https://github.com/explosion/thinc/blob/master/examples/03_pos_tagger_basic_cnn.ipynb), which is either totally unrelated to image processing CNNs or the two are deeply linked in a way that is beyond my understanding. 
 
-Because I was not able to make a CNN with `thinc`'s provided layer types, I began to look in to [PyTorch](https://pytorch.org/), a more mature and mainstream library that has many more tutorials available and built-in support for 2D image processing, including pooling and convolutional filter layers. The greatest thing is that the only thing about my code I had to change was my model, because the `thinc` library includes a [PyTorchWrapper](https://thinc.ai/docs/usage-frameworks) that makes PyTorch models fully compatible with `thinc` training, testing, prediction, and storage (i.e. to and from disk). A first attempt ([adapted from this example](https://github.com/pytorch/examples/blob/master/mnist/main.py#L11)) brought the network to 83% accuracy, then some revisions (changing around parameters like number of convolutional filters and fully connected layer neurons) brought it to 86%, then again up to 90%. 
+Because I was not able to make a CNN with `thinc`'s provided layer types, I began to look in to [PyTorch](https://pytorch.org/), a more mature and mainstream library that has many more tutorials available and built-in support for 2D image processing, including pooling and convolutional filter layers. The greatest thing is that the only thing about my code I had to change was my model, because the `thinc` library includes a [PyTorchWrapper](https://thinc.ai/docs/usage-frameworks) that makes PyTorch models fully compatible with `thinc` training, testing, prediction, and storage (i.e. to and from disk).
 
-I chose to take a closer look at the predictions the network was making and saw that they were the **same for every input it got, as though it were completely blindly guessing**, making the accuracy measurements I was getting **meaningless**. I couldn't find out what was wrong with my code from looking at it, so I searched the internet for possible reasons: TODO, and TODO. 
+Unfortunately, once I switched from a `thinc` model to a PyTorch model, the program began to [segmentation fault](https://en.wikipedia.org/wiki/Segmentation_fault) on my main computer, with an AMD processor on macOS. So, I had to continue with the project using my slower Windows laptop with an Intel processor. 
 
-TODO: Describe learning my program is useless because OBS removed the problem.
+A first attempt with PyTorch ([adapted from this example](https://github.com/pytorch/examples/blob/master/mnist/main.py#L11)) brought the network to 83% accuracy, then some revisions (changing around parameters like number of convolutional filters and fully connected layer neurons) brought it to 86%, then again up to 90%. I chose to take a closer look at the predictions the network was making and saw that they were the **same for every input it got, as though it were completely blindly guessing**, making the accuracy measurements I was getting **meaningless**. I couldn't find out what was wrong with my code from looking at it, so I searched the internet for possible reasons: the model needs [fewer neurons](https://stackoverflow.com/a/26209541), and/or [the data needs to be reshaped / reformatted](https://stackoverflow.com/a/55730402). Changing up the model made me mistakenly add a sigmoid activation function where it shouldn't have been, but I didn't know this was a problem until I fixed the data shape, so when I removed it again, I immediately got a real (i.e. the neural network was able to "see" the inputs and give reasonable and different outputs for each) 94% accuracy!
 
-Once these more major problems were solved, another was able to come to light: the network gets incredibly overconfident quickly. This is fair because it's right 100% of the time after being exposed to 700 images (or 1/3 of the training set), but I would still like more discretion and admittance of defeat for the hardest cases. To try to achieve this, I looked into modifying the loss function, which the neural network is always trying to minimize, to heavily penalize overconfident wrong answers (which should result in rewarding unconfident answers). [This article](https://medium.com/udacity-pytorch-challengers/a-brief-overview-of-loss-functions-in-pytorch-c0ddb78068f7) describes *mean square error loss* as (Yh-Y)² and "penalizes the model when it makes large mistakes and incentivizes small errors", but my testing showed absolutely no change when I modified the exponent in the `OverconfidenceLoss` function, so this problem is yet to be solved.
+Once these more major problems were solved, another was able to come to light: the network gets incredibly overconfident quickly. This is fair because it's right 100% of the time after being exposed to 700 images (or 1/3 of the training set), but I would still like more discretion and admittance of defeat for the hardest cases. To try to achieve this, I looked into modifying the loss function, which the neural network is always trying to minimize, to heavily penalize overconfident wrong answers (which should result in rewarding unconfident answers). [This article](https://medium.com/udacity-pytorch-challengers/a-brief-overview-of-loss-functions-in-pytorch-c0ddb78068f7) describes *mean square error loss* as (Yh-Y)² (where Yh means prediction and Y means truth) and "penalizes the model when it makes large mistakes and incentivizes small errors", but my testing showed absolutely no change when I modified the exponent in the `OverconfidenceLoss` function, so this problem is yet to be solved.
 
 
 #### Training and testing
-TODO: loading, shuffling up equal and unequal within each epoch, how accuracy works, division of equal:unequal in each set.
+A training set is made by making a list of all the match IDs (folder names) in `data/training/equal` (2500 entries) and `data/training/unequal` (4000 entries), then shuffling it so that there's an even mix of equal and unequal data. This list is looped over, and an image is loaded from the path along with an array like `[0, 1]` for unequal matches and `[1, 0]` for equal matches that resembles the kind of output softmax will give. The same thing is also done for the test set in the `data/test/equal` (500 entries) and `data/test/unequal` directories (500 entries).
+
+I decided to run 50 epochs to train and test the neural network because it seems like a good number. Each epoch, 1/50th of the training set is fed into the CNN, which gives back predictions for these inputs. We pass the predictions and truths to the `OverconfidenceLoss` function to calculate loss and gradients, then backpropagate these. 
+
+Right after this, the NN is tested on 1/50th of the test set, and its predictions are compared against the truths. If the prediction's best guess (i.e. largest output) matches the true answer, then that is counted as a correct answer. A running total is kept of the ratio of correct answers to total questions, and it is shown as a progress bar so we can keep track of it mostly gradually increasing over time. 
 
 
 <a name="combine"></a>
 
 ### Bringing it all together: automatically combine two VHS recordings with `stitch combine`
-TODO: Would it be appropriate to include that Kronk meme here? Sure, but edit it out from the Canvas submission.
-
 This is where all the work done with the previously described commands pays off. Once those commands have been run (and the accuracy of the network is satisfactory), **they never need to be run again**.
+
+First, the previously described `extract` command is used again here under the hood to extract the given `chunk_1` and `chunk_2` video files's frames of their last/first 90 seconds respectively. Then, every frame from `chunk_2` is compared against 11 equally spaced samples from `chunk_1`. This means that there's one selected frame for every 10% of video (9 seconds), so it is assumed there is at least 9 seconds of overlap between the two videos to be found.
+
+A comparison image, previously described in the `assemble` section, is made of each frame pair and fed into the trained neural network to make a prediction of the similarity between the two. After all frame pairs are compared, the one with the highest predicted similarity is chosen to be the point to cut off the first chunk and resume from the second. These frame numbers are converted to a timestamp for the first chunk and another for the second chunk.
+
+These timestamps are used to generate an FFMPEG command that combines the two video chunks into a new `output` (parameter passed after `chunk_1` and `chunk_2`) video file. It also prints out the timestamp in the output video to tell the user to see how the match is.
 
 
 <a name="conclusion"></a>
 
 ## Conclusion
-TODO: evaluate the program with that sample I recorded a couple nights ago
+I tested the `combine` command on a fresh VHS tape (i.e. the neural network had never seen it before) and it correctly found a *perfect* matching frame pair to combine/stitch at. I reviewed the result and saw that it chose to frame where the camera was moving quickly, so if it had been off by even a little bit, a stutter (skipping ahead of repeating already seen frames) would've been noticeable. In actuality, the stitcher *nailed it*.
 
-TODO: historically avoided AI / NNs / ML but feel quite empowered to continue down this path and apply it to other things, like my security system which was a rejected project topic
+I've been a programmer for a long time but I've historically actively avoided working with artificial intelligence (AI) / neural networks / machine learning (ML), image processing, or data and numerical analysis stuff. **This project, and class as a whole, has empowered me to continue down this continue down this path with experience.** One area I may apply this knowledge next is "smartening up" my security system with neural networks, an idea I came up with originally doing for this project but rejected. 
 
 
 <a name="appendix"></a>
@@ -170,4 +178,4 @@ TODO: historically avoided AI / NNs / ML but feel quite empowered to continue do
 
 The source code associated with this project is included as a zip archive attached to the Canvas submission. 
 
-It is also available to browse publicly on [GitHub here](https://github.com/babichjacob/vhs-stitcher).
+It will also available to browse publicly on [GitHub here](https://github.com/babichjacob/vhs-stitcher) on Sunday at 11:59 PM alongside project submission.
