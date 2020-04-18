@@ -9,7 +9,7 @@ from torch.nn import Conv2d, Dropout, Linear, MaxPool2d, Module, ReLU, Sequentia
 from torch.nn.functional import log_softmax, max_pool2d
 from tqdm import tqdm
 
-from . import application_directory, IMAGE_SIZE_SMALL, models_directory, SESSIONS, TEST_RECORDS_PER_SESSION, TRAINING_RECORDS_PER_SESSION
+from . import application_directory, IMAGE_SIZE_SMALL, models_directory, EPOCHS, TEST_RECORDS_PER_EPOCH, TRAINING_RECORDS_PER_EPOCH
 from .assemble import load_set, unzip
 
 
@@ -202,25 +202,25 @@ def main(fresh: bool = False, move_studied_records: bool = True):
         print(f"continuining to train the pre-existing model")
 
     # https://github.com/explosion/thinc/blob/master/examples/00_intro_to_thinc.ipynb
-    with tqdm(total=100, desc="accuracy", unit="%") as accuracy, tqdm(range(SESSIONS),
-                                                                      desc="running training sessions", unit="sessions") as sessions:
+    with tqdm(total=100, desc="accuracy", unit="%") as accuracy, tqdm(range(EPOCHS),
+                                                                      desc="running training epochs", unit="epochs") as epochs:
         correct = 0
         total = 0
 
-        for session in sessions:
+        for epoch in epochs:
             # Train
             X = array(
                 list(
                     islice(
                         training_questions,
                         0,
-                        TRAINING_RECORDS_PER_SESSION)))
+                        TRAINING_RECORDS_PER_EPOCH)))
             Y = array(
                 list(
                     islice(
                         training_answers,
                         0,
-                        TRAINING_RECORDS_PER_SESSION)))
+                        TRAINING_RECORDS_PER_EPOCH)))
 
             # Sometimes we run out of records sooner than expected because of
             # poor software design by me
@@ -233,9 +233,9 @@ def main(fresh: bool = False, move_studied_records: bool = True):
 
             # Test
             X = array(
-                list(islice(test_questions, 0, TEST_RECORDS_PER_SESSION)))
+                list(islice(test_questions, 0, TEST_RECORDS_PER_EPOCH)))
             Y = array(
-                list(islice(test_answers, 0, TEST_RECORDS_PER_SESSION)))
+                list(islice(test_answers, 0, TEST_RECORDS_PER_EPOCH)))
 
             Yh = model.predict(X)
 
