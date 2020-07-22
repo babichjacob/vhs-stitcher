@@ -180,3 +180,8 @@ I tested the `combine` command on a fresh VHS tape (i.e. the neural network had 
 If I were to continue to work on this project, I would focus on optimizing it. For instance, it takes a really long time (minutes) to find a match in `combine`, and reducing the number of frames to scan should solve this, such as by stopping once a sufficiently accurate 99.999% match is found or by cutting the extraction period down from 90 seconds to, say, 30 seconds.
 
 I've been a programmer for a long time but I've historically actively avoided working with artificial intelligence (AI) / neural networks / machine learning (ML), image processing, or data and numerical analysis stuff. **This project, and class as a whole, has empowered me to continue down this continue down this path with experience.** One area I may apply this knowledge next is "smartening up" my security system with neural networks, an idea I came up with originally doing for this project but rejected. 
+
+
+---
+
+_Repository preview image generated with [GitHub Social Preview](https://social-preview.pqt.dev/)_
